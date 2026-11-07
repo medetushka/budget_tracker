@@ -86,7 +86,8 @@ object Json {
             "settings",
             JSONObject()
                 .put("currency", data.settings.currency)
-                .put("monthlyBudget", data.settings.monthlyBudget),
+                .put("monthlyBudget", data.settings.monthlyBudget)
+                .put("dailyLimit", data.settings.dailyLimit),
         )
         root.put("categories", JSONArray().apply {
             data.categories.forEach {
@@ -116,6 +117,7 @@ object Json {
         val settings = Settings(
             currency = s?.optString("currency", "₸")?.ifBlank { "₸" } ?: "₸",
             monthlyBudget = s?.optLong("monthlyBudget", 0) ?: 0,
+            dailyLimit = s?.optLong("dailyLimit", 0) ?: 0,
         )
         val categories = root.optJSONArray("categories")?.let { arr ->
             (0 until arr.length()).map { i ->

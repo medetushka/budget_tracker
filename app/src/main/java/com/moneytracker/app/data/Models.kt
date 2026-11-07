@@ -22,6 +22,8 @@ data class Settings(
     val currency: String = "₸",
     /** Monthly budget in minor units, 0 = not set. */
     val monthlyBudget: Long = 0,
+    /** Fixed daily spending limit in minor units, 0 = not set. */
+    val dailyLimit: Long = 0,
 )
 
 data class AppData(
