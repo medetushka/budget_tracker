@@ -120,6 +120,28 @@ fun StatsScreen(data: AppData) {
             )
         }
 
+        val dailyLimit = data.settings.dailyLimit
+        if (dailyLimit > 0) {
+            val countedDays = perDay.take(daysCounted)
+            val overDays = countedDays.count { it > dailyLimit }
+            val withinDays = countedDays.size - overDays
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatTile("Дней в лимите", "$withinDays из ${countedDays.size}", Modifier.weight(1f), valueColor = MaterialTheme.colorScheme.primary)
+                StatTile(
+                    "Дней сверх лимита",
+                    "$overDays",
+                    Modifier.weight(1f),
+                    valueColor = if (overDays > 0) MaterialTheme.colorScheme.error else null,
+                )
+            }
+        }
+
         if (total == 0L) {
             EmptyState("📊", "В этом месяце трат нет")
         } else {
@@ -128,7 +150,16 @@ fun StatsScreen(data: AppData) {
                     values = perDay.toList(),
                     labelFor = { i -> "${formatShortDay(month.atDay(i + 1))}: ${formatMoney(perDay[i], currency)}" },
                     axisLabels = listOf("1", "${month.lengthOfMonth() / 2}", "${month.lengthOfMonth()}"),
+                    limit = dailyLimit.takeIf { it > 0 },
                 )
+                if (dailyLimit > 0) {
+                    Text(
+                        "Пунктир — лимит ${formatMoney(dailyLimit, currency, false)} в день",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
 
             ChartCard("По категориям") {
@@ -250,12 +281,15 @@ private fun ChartCard(title: String, content: @Composable () -> Unit) {
 
 /** Simple bar chart; tap a bar to see its value. */
 @Composable
-private fun BarChart(values: List<Long>, labelFor: (Int) -> String, axisLabels: List<String>) {
+private fun BarChart(values: List<Long>, labelFor: (Int) -> String, axisLabels: List<String>, limit: Long? = null) {
     var selected by remember(values) { mutableStateOf(values.indices.lastOrNull { values[it] > 0 }) }
     val barColor = MaterialTheme.colorScheme.primary
     val dimColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+    val overColor = MaterialTheme.colorScheme.error
+    val overDimColor = MaterialTheme.colorScheme.error.copy(alpha = 0.35f)
+    val limitColor = MaterialTheme.colorScheme.onSurfaceVariant
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    val max = (values.maxOrNull() ?: 0L).coerceAtLeast(1L)
+    val max = maxOf(values.maxOrNull() ?: 0L, limit ?: 0L).coerceAtLeast(1L)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -295,13 +329,30 @@ private fun BarChart(values: List<Long>, labelFor: (Int) -> String, axisLabels: 
             )
             if (v > 0) {
                 val h = (v.toFloat() / max) * size.height
+                val over = limit != null && v > limit
+                val active = selected == null || selected == i
                 drawRoundRect(
-                    color = if (selected == null || selected == i) barColor else dimColor,
+                    color = when {
+                        over && active -> overColor
+                        over -> overDimColor
+                        active -> barColor
+                        else -> dimColor
+                    },
                     topLeft = Offset(x, size.height - h),
                     size = Size(barWidth, h),
                     cornerRadius = CornerRadius(3.dp.toPx()),
                 )
             }
+        }
+        if (limit != null) {
+            val y = size.height - (limit.toFloat() / max) * size.height
+            drawLine(
+                color = limitColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx())),
+            )
         }
     }
     Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {

@@ -141,10 +141,23 @@ fun HistoryScreen(data: AppData, vm: MoneyViewModel, snackbar: SnackbarHostState
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(formatDay(day), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        val dayTotal = list.sumOf { it.amount }
+                        val limit = data.settings.dailyLimit
+                        // Compare the full day (not the filtered subset) against the limit.
+                        val fullDay = data.expenses.filter { it.date == day }.sumOf { it.amount }
+                        val over = limit > 0 && fullDay > limit
+                        if (over) {
+                            Text(
+                                "⚠ ",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         Text(
-                            formatMoney(list.sumOf { it.amount }, currency),
+                            formatMoney(dayTotal, currency),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
+                            color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }

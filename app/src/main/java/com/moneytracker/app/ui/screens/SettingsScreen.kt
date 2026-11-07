@@ -119,9 +119,34 @@ fun SettingsScreen(data: AppData, vm: MoneyViewModel, snackbar: SnackbarHostStat
                     onValueChange = { budgetText = it },
                     label = { Text("Бюджет на месяц") },
                     supportingText = {
-                        Text(if (budgetValid) "Пусто — без бюджета. С бюджетом приложение считает дневной лимит." else "Неверная сумма")
+                        Text(if (budgetValid) "Пусто — без бюджета на месяц." else "Неверная сумма")
                     },
                     isError = !budgetValid,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                var dailyText by rememberSaveable {
+                    mutableStateOf(if (data.settings.dailyLimit > 0) minorToInput(data.settings.dailyLimit) else "")
+                }
+                val dailyValid = dailyText.isBlank() || parseAmount(dailyText) != null
+                LaunchedEffect(dailyText) {
+                    if (dailyText.isBlank()) vm.setDailyLimit(0)
+                    else parseAmount(dailyText)?.let { vm.setDailyLimit(it) }
+                }
+                OutlinedTextField(
+                    value = dailyText,
+                    onValueChange = { dailyText = it },
+                    label = { Text("Лимит на день") },
+                    supportingText = {
+                        Text(
+                            if (!dailyValid) "Неверная сумма"
+                            else if (dailyText.isBlank()) "Пусто — лимит считается из бюджета на месяц (если он задан)."
+                            else "Сколько можно тратить каждый день.",
+                        )
+                    },
+                    isError = !dailyValid,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),

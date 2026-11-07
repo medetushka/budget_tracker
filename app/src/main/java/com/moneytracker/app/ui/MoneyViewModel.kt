@@ -59,6 +59,10 @@ class MoneyViewModel(app: Application) : AndroidViewModel(app) {
         repo.update { it.copy(settings = it.settings.copy(monthlyBudget = amount.coerceAtLeast(0))) }
     }
 
+    fun setDailyLimit(amount: Long) {
+        repo.update { it.copy(settings = it.settings.copy(dailyLimit = amount.coerceAtLeast(0))) }
+    }
+
     fun addCategory(name: String, emoji: String) {
         val category = Category(
             id = UUID.randomUUID().toString(),

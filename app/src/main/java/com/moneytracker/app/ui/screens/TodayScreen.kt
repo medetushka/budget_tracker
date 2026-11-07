@@ -149,17 +149,36 @@ fun TodayScreen(data: AppData, vm: MoneyViewModel, snackbar: SnackbarHostState) 
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    if (budget > 0) {
-                        val daysLeft = month.lengthOfMonth() - date.dayOfMonth + 1
-                        val allowance = ((budget - spentBeforeDay) / daysLeft).coerceAtLeast(0)
+                    // Day limit: fixed one from settings, otherwise derived from the monthly budget.
+                    val dailyLimit = data.settings.dailyLimit
+                    val allowance = when {
+                        dailyLimit > 0 -> dailyLimit
+                        budget > 0 -> {
+                            val daysLeft = month.lengthOfMonth() - date.dayOfMonth + 1
+                            ((budget - spentBeforeDay) / daysLeft).coerceAtLeast(0)
+                        }
+                        else -> 0L
+                    }
+                    if (dailyLimit > 0 || budget > 0) {
                         val leftToday = allowance - dayTotal
                         Spacer(Modifier.height(4.dp))
                         Text(
                             if (leftToday >= 0) "Можно ещё ${formatMoney(leftToday, currency, false)} из ${formatMoney(allowance, currency, false)} на день"
-                            else "Перерасход на ${formatMoney(-leftToday, currency, false)} (лимит дня ${formatMoney(allowance, currency, false)})",
+                            else "Лимит дня превышен на ${formatMoney(-leftToday, currency, false)} (лимит ${formatMoney(allowance, currency, false)})",
                             style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (leftToday < 0) FontWeight.SemiBold else null,
                             color = if (leftToday >= 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.error,
                         )
+                        if (dailyLimit > 0) {
+                            Spacer(Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { if (allowance > 0) (dayTotal.toFloat() / allowance).coerceIn(0f, 1f) else 1f },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = if (leftToday < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    if (budget > 0) {
                         Spacer(Modifier.height(12.dp))
                         LinearProgressIndicator(
                             progress = { (monthTotal.toFloat() / budget).coerceIn(0f, 1f) },
